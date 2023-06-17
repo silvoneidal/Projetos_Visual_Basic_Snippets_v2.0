@@ -1,0 +1,34 @@
+<Snippets><Item><Text>mediaAnalogica()</Text><Content><![CDATA[long mediaAnalog(){
+    int media=10;
+    long int soma=0;
+    // Amostras
+    for(int x=media; x>0; x--){
+        soma+=analogRead(portAN); 
+      	delay(1); 
+    }
+    // Média
+    return=soma/media;
+  
+}// mediaAnalog
+]]></Content></Item><Item><Text>debugPrint()</Text><Content><![CDATA[String debugPrint(String _strDado){
+    Serial.print("[");
+    Serial.print(_strDado);
+    Serial.println("]");
+
+}// end debugPrint]]></Content></Item><Item><Text>piscaLed()</Text><Content><![CDATA[void piscaLed(byte _nPisca){
+    for(byte x=nPisca; x>0; x--){
+	digitalWrite(portLed, HIGH); delay(200);
+	digitalWrite(portLed, LOW); delay(200);
+    }
+
+} // end piscaLed]]></Content></Item><Item><Text>while()</Text><Content><![CDATA[while(){
+
+}]]></Content></Item><Item><Text>Serial.println()</Text><Content><![CDATA[Serialprintln("");]]></Content></Item><Item><Text>Serial.print()</Text><Content><![CDATA[Serialprint("");]]></Content></Item><Item><Text>namespace</Text><Content><![CDATA[namespace {
+
+}]]></Content></Item><Item><Text>if_else</Text><Content><![CDATA[if(){
+
+}else{
+
+}]]></Content></Item><Item><Text>if()</Text><Content><![CDATA[if(){
+
+}]]></Content></Item><Item><Text>digitalWrite()</Text><Content><![CDATA[digitalWrite();]]></Content></Item><Item><Text>digitalRead()</Text><Content><![CDATA[digitalRead();]]></Content></Item><Item><Text>condicao_ternaria</Text><Content><![CDATA[condição ? true : false]]></Content></Item></Snippets>

@@ -1,0 +1,41 @@
+DALÇÓQUIO AUTOMAÇÃO
+Snippets_v2.0
+
+Atalho:
+Crie um atalho do executável para área de trabalho.
+
+
+Menu de operação:
+
+Menu -> Snippet -> Abrir
+Abre o editor de texto para snippet.
+
+Menu -> Snippet -> Fechar
+Fecha o editor de texto para snippet.
+
+Menu -> Snippet -> Salvar 
+Salva um novo snippet, 
+ou uma alteração do snippet selecionado na lista de snippets.
+
+Menu -> Snippet -> Excluir
+Exclui o snippet selecionado na lista de snnipets.
+
+Menu -> Snippet -> Renomear
+Renomear o snippet selecionado na lista de snnipets.
+
+Menu -> Color -> Black ou White
+Altera a cor de fundo e texto do formulário.
+
+Menu -> Help
+Abre help no explorer.
+
+Para "Copiar"
+Duplo click na lista de snippets
+Será copiado o conteúdo do snippet selecionado para área de transferência
+Em seguida você deve usar o "Ctrl+V" do teclado para colar no local desejado.
+
+
+*Todos os snippets serão salvos na pasta deste projeto, no arquivo chamado snippets.xml
+
+
+
