@@ -108,6 +108,14 @@ Attribute VB_Exposed = False
 
 Option Explicit
 
+Dim xmlDoc As Object ' Objeto XML
+Dim xmlRoot As Object ' Elemento raiz
+Dim xmlItem As Object ' Elemento item
+Dim xmlItems As Object ' Elemento item
+Dim xmlText As Object ' Texto do item
+Dim xmlContent As Object ' Conteúdo do item
+Dim xmlContentCDATA As Object ' Seção de dados CDATA
+
 Dim Color As String
 Dim filePathXml As String
 Dim filePathHelp As String
@@ -131,11 +139,21 @@ Private Sub Form_Load()
    ' Largura inicial do formulário
    Me.Width = 3600
    
-   ' Carrega lista de snippets
-   Call ListaSnippetXML
-   
-   ' Ordem Alfabética para lista de snippets
-   Call OrdenarListBoxAlfabeticamente(listSnippets)
+   ' Verifica se o arquivo.xml existe
+    If Dir(filePathXml) = "" Then
+      ' Arquivo não existe, cria um novo.
+      Set xmlDoc = New DOMDocument
+      Set xmlRoot = xmlDoc.createElement("Snippets")
+      xmlDoc.appendChild xmlRoot
+      xmlDoc.save filePathXml
+      ' Limpa o ListBox
+      listSnippets.Clear
+    Else
+      ' Carrega lista de snippets
+      Call LoadSnippetXML
+      ' Ordem Alfabética para lista de snippets
+      Call OrdenarListBoxAlfabeticamente(listSnippets)
+    End If
    
    'Recupera os valores em config.ini
    Color = ReadIniValue(App.Path & "\Config.ini", "VARIAVEIS", "Color")
@@ -203,7 +221,7 @@ SNIPPET_SELECT:
    Call AdicionarSnippetXML(snippetName, snippetText)
    
    ' Carrega lista de snippets
-   Call ListaSnippetXML
+   Call LoadSnippetXML
    
    ' Confirmação de que o snippet foi excluido
     MsgBox "Snippet: " & snippetName & " salvo com sucesso...", , "DALÇÓQUIO AUTOMAÇÃO"
@@ -229,7 +247,7 @@ SNIPPET_NEW:
       Call AdicionarSnippetXML(snippetName, snippetText)
       
       ' Carrega lista de snippets
-      Call ListaSnippetXML
+      Call LoadSnippetXML
       
       ' Confirmação de que o snippet foi excluido
       MsgBox "Snippet: " & snippetName & " salvo com sucesso...", , "DALÇÓQUIO AUTOMAÇÃO"
@@ -266,7 +284,7 @@ Private Sub mExcluir_Click()
         txtSnippet.Text = Empty
         
         ' Carrega lista de snippets
-        Call ListaSnippetXML
+        Call LoadSnippetXML
         
         ' Confirmação de que o snippet foi excluido
         MsgBox "Snippet: " & snippetName & " excluido com sucesso...", , "DALÇÓQUIO AUTOMAÇÃO"
@@ -306,7 +324,7 @@ Private Sub mRenomear_Click()
    Call AdicionarSnippetXML(snippetName, snippetText)
    
    ' Carrega lista de snippets
-   Call ListaSnippetXML
+   Call LoadSnippetXML
    
    ' Confirmação de que o snippet foi excluido
     MsgBox "Snippet: " & snippetTemp & " para " & snippetName & " renomeado com sucesso...", , "DALÇÓQUIO AUTOMAÇÃO"
@@ -340,7 +358,7 @@ Private Sub mWhite_Click()
 End Sub
 
 Private Sub mHelp_Click()
-    ' Abre o arquivo HTML no navegador padrão
+    ' Abre o arquivo.html no navegador padrão
     Shell "rundll32.exe url.dll,FileProtocolHandler " & filePathHelp, vbNormalFocus
 End Sub
 
@@ -368,7 +386,6 @@ Private Sub listSnippets_DblClick()
    ' Obtém o texto do snippet selecionado
    Dim snippetText As String
    Call BuscarSnippetXML(snippetName, snippetText)
-   'txtSnippet.Text = snippetText
    
    ' Copia o texto do snippet para a área de transferência
    Clipboard.Clear
@@ -376,7 +393,6 @@ Private Sub listSnippets_DblClick()
    
    Timer1.Enabled = True
    txtMensagem.Visible = True
-   'MsgBox "O snippet foi copiado para a área de transferência (Ctrl+V para colar).", vbInformation, "DALÇÓQUIO AUTOMAÇÃO"
    
 End Sub
 
@@ -463,97 +479,73 @@ End Sub
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 'Busca o conteúdo do snippet do arquivo.xml
+
 Private Sub BuscarSnippetXML(ByVal snippetName As String, ByRef snippetText As String)
-    Dim xmlDoc As Object ' Objeto XML
-    Dim xmlRoot As Object ' Elemento raiz
-    Dim xmlItems As Object ' Elementos item
-    Dim xmlItem As Object ' Elemento item
-    Dim i As Integer ' Índice do item
-    
-    ' Verifica se o arquivo XML existe
-    If Dir(filePathXml) <> "" Then
-        ' Carrega o arquivo XML
-        Set xmlDoc = CreateObject("MSXML2.DOMDocument")
-        xmlDoc.async = False
-        xmlDoc.preserveWhiteSpace = True ' Preserva espaços em branco
-        xmlDoc.Load filePathXml
+   ' Carrega o arquivo.xml
+   Set xmlDoc = New DOMDocument
+   xmlDoc.Load filePathXml
+   
+   ' Obtém o elemento raiz
+   Set xmlRoot = xmlDoc.documentElement
+   
+   ' Obtém a lista de elementos item
+   Set xmlItems = xmlRoot.getElementsByTagName("Item")
+   
+   ' Procura o item pelo snippetName
+   Dim i As Integer ' Índice do item
+   For i = 0 To xmlItems.length - 1
+       Set xmlItem = xmlItems.Item(i)
+       If xmlItem.firstChild.Text = snippetName Then
+           ' Obtém o conteúdo do snippet
+           Dim xmlContent As Object
+           Set xmlContent = xmlItem.getElementsByTagName("Content").Item(0)
+           
+           ' Obtém o conteúdo do snippet com linhas e identação
+           Dim lines As String
+           lines = xmlContent.xml
+           
+           ' Remove os prefixos e sufixos do CDATA
+           Const cdataPrefix As String = "<Content><![CDATA["
+           Const cdataSuffix As String = "]]></Content>"
+           If left(lines, Len(cdataPrefix)) = cdataPrefix And right(lines, Len(cdataSuffix)) = cdataSuffix Then
+               lines = Mid(lines, Len(cdataPrefix) + 1, Len(lines) - Len(cdataPrefix) - Len(cdataSuffix))
+           End If
+           
+           ' Define o snippetText com o conteúdo formatado
+           snippetText = lines
+           Exit For
+       End If
+   Next i
         
-        ' Obtém o elemento raiz
-        Set xmlRoot = xmlDoc.documentElement
-        
-        ' Obtém a lista de elementos item
-        Set xmlItems = xmlRoot.getElementsByTagName("Item")
-        
-        ' Procura o item pelo snippetName
-        For i = 0 To xmlItems.length - 1
-            Set xmlItem = xmlItems.Item(i)
-            If xmlItem.firstChild.Text = snippetName Then
-                ' Obtém o conteúdo do snippet
-                Dim xmlContent As Object
-                Set xmlContent = xmlItem.getElementsByTagName("Content").Item(0)
-                
-                ' Obtém o conteúdo do snippet com linhas e identação
-                Dim lines As String
-                lines = xmlContent.xml
-                
-                ' Remove os prefixos e sufixos do CDATA
-                Const cdataPrefix As String = "<Content><![CDATA["
-                Const cdataSuffix As String = "]]></Content>"
-                If left(lines, Len(cdataPrefix)) = cdataPrefix And right(lines, Len(cdataSuffix)) = cdataSuffix Then
-                    lines = Mid(lines, Len(cdataPrefix) + 1, Len(lines) - Len(cdataPrefix) - Len(cdataSuffix))
-                End If
-                
-                ' Define o snippetText com o conteúdo formatado
-                snippetText = lines
-                Exit For
-            End If
-        Next i
-    End If
 End Sub
 
-'Lista snippets do arquivo.xml para ListBox
-Private Sub ListaSnippetXML()
-    Dim xmlDoc As Object ' Objeto XML
-    Dim xmlRoot As Object ' Elemento raiz
-    Dim xmlItems As Object ' Elementos item
-    Dim xmlItem As Object ' Elemento item
+'Carrega snippets do arquivo.xml para ListBox
+
+Private Sub LoadSnippetXML()
     Dim snippetName As String ' Nome do snippet
         
-    ' Verifica se o arquivo XML existe
-    If Dir(filePathXml) = "" Then
-         ' Arquivo não existe, cria um novo arquivo vazio
-         Set xmlDoc = CreateObject("MSXML2.DOMDocument")
-         Set xmlRoot = xmlDoc.createElement("Snippets")
-         xmlDoc.appendChild xmlRoot
-         xmlDoc.save filePathXml
-         xmlDoc.async = False
-         ' Limpa o ListBox
-         listSnippets.Clear
-    Else
-        ' Carrega o arquivo XML
-        Set xmlDoc = CreateObject("MSXML2.DOMDocument")
-        xmlDoc.async = False
-        xmlDoc.Load filePathXml
-        
-        ' Obtém o elemento raiz
-        Set xmlRoot = xmlDoc.documentElement
-         
-        ' Obtém a lista de elementos item
-        Set xmlItems = xmlRoot.childNodes
-        
-        ' Limpa o ListBox
-        listSnippets.Clear
-         
-        ' Adiciona os itens ao ListBox
-        For Each xmlItem In xmlItems
-            If xmlItem.nodeName = "Item" Then
-                If Not xmlItem.firstChild Is Nothing Then
-                    snippetName = xmlItem.firstChild.Text
-                    listSnippets.AddItem snippetName
-                End If
-            End If
-        Next xmlItem
-    End If
+   ' Carrega o arquivo.xml
+   Set xmlDoc = New DOMDocument
+   xmlDoc.Load filePathXml
+   
+   ' Obtém o elemento raiz
+   Set xmlRoot = xmlDoc.documentElement
+    
+   ' Obtém a lista de elementos item
+   Set xmlItems = xmlRoot.childNodes
+   
+   ' Limpa o ListBox
+   listSnippets.Clear
+    
+   ' Adiciona os itens ao ListBox
+   For Each xmlItem In xmlItems
+       If xmlItem.nodeName = "Item" Then
+           If Not xmlItem.firstChild Is Nothing Then
+               snippetName = xmlItem.firstChild.Text
+               listSnippets.AddItem snippetName
+           End If
+       End If
+   Next xmlItem
     
     ' Ordem Alfabética para lista de snippets
    Call OrdenarListBoxAlfabeticamente(listSnippets)
@@ -562,31 +554,14 @@ End Sub
 
 
 ' Adiciona snippet ao arquivo.xml
+
 Private Sub AdicionarSnippetXML(ByVal snippetName As String, ByVal snippetText As String)
-    Dim xmlDoc As Object ' Objeto XML
-    Dim xmlRoot As Object ' Elemento raiz
-    Dim xmlItem As Object ' Elemento item
-    Dim xmlText As Object ' Texto do item
-    Dim xmlContent As Object ' Conteúdo do item
-    Dim xmlContentCDATA As Object ' Seção de dados CDATA
-    
-    ' Cria um novo documento XML ou carrega o existente
-    Set xmlDoc = CreateObject("MSXML2.DOMDocument")
-    xmlDoc.async = False
-    xmlDoc.preserveWhiteSpace = True
-    
-    ' Verifica se o arquivo XML já existe
-    If Dir(filePathXml) = "" Then
-        ' Se o arquivo não existe, cria o elemento raiz
-        Set xmlRoot = xmlDoc.createElement("Snippets")
-        xmlDoc.appendChild xmlRoot
-    Else
-        ' Se o arquivo existe, carrega o XML existente
-        xmlDoc.Load filePathXml
-        Set xmlRoot = xmlDoc.documentElement
-    End If
+    ' Carrega arquivo.xml
+    Set xmlDoc = New DOMDocument
+    xmlDoc.Load filePathXml
     
     ' Cria um novo elemento item
+    Set xmlRoot = xmlDoc.documentElement
     Set xmlItem = xmlDoc.createElement("Item")
     Set xmlText = xmlDoc.createElement("Text")
     Set xmlContent = xmlDoc.createElement("Content")
@@ -610,16 +585,10 @@ Private Sub AdicionarSnippetXML(ByVal snippetName As String, ByVal snippetText A
 End Sub
 
 'Remover snippet do arquivo.xml
-Private Sub RemoverSnippetXML(ByVal snippetName As String)
-    Dim xmlDoc As Object ' Objeto XML
-    Dim xmlRoot As Object ' Elemento raiz
-    Dim xmlItems As Object ' Elementos item
-    Dim xmlItem As Object ' Elemento item
-    Dim i As Integer ' Índice do item a ser excluído
 
-    ' Carrega o arquivo XML
-    Set xmlDoc = CreateObject("MSXML2.DOMDocument")
-    xmlDoc.async = False
+Private Sub RemoverSnippetXML(ByVal snippetName As String)
+    ' Carrega o arquivo.xml
+    Set xmlDoc = New DOMDocument
     xmlDoc.Load filePathXml
 
     ' Obtém o elemento raiz
@@ -629,6 +598,7 @@ Private Sub RemoverSnippetXML(ByVal snippetName As String)
     Set xmlItems = xmlRoot.getElementsByTagName("Item")
 
     ' Procura pelo item a ser excluído
+    Dim i As Integer ' Índice do item a ser excluído
     For i = 0 To xmlItems.length - 1
         Set xmlItem = xmlItems.Item(i)
         ' Verifica se o nome corresponde ao item a ser excluído
@@ -645,18 +615,5 @@ Private Sub RemoverSnippetXML(ByVal snippetName As String)
 
 End Sub
 
-
-
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-' BLOCO DE NOTAS
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-'Private Sub txtSnippets_DblClick()
-'   Dim projectPath As String
-'   projectPath = App.Path
-'
-'   Shell "explorer.exe " & projectPath, vbNormalFocus
-'
-'End Sub
 
 
